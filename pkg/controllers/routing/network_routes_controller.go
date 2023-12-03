@@ -39,6 +39,7 @@ const (
 	nodeAddrsIPSetName   = "kube-router-node-ips"
 
 	nodeASNAnnotation                = "kube-router.io/node.asn"
+	nodeRouterIDAnnotation           = "kube-router.io/node.routerid"
 	nodeCommunitiesAnnotation        = "kube-router.io/node.bgp.communities"
 	nodeCustomImportRejectAnnotation = "kube-router.io/node.bgp.customimportreject"
 	pathPrependASNAnnotation         = "kube-router.io/path-prepend.as"
@@ -1437,6 +1438,7 @@ func NewNetworkRoutingController(clientset kubernetes.Interface,
 		return nil, fmt.Errorf("IPv6 was enabled, but no IPv6 address was found on the node")
 	}
 	nrc.isIPv6Capable = len(nrc.nodeIPv6Addrs) > 0
+	annotationNodeRouterID, annotationOK := node.ObjectMeta.Annotations[nodeRouterIDAnnotation]
 
 	switch {
 	case kubeRouterConfig.RouterID == "generate":
@@ -1448,6 +1450,8 @@ func NewNetworkRoutingController(clientset kubernetes.Interface,
 		nrc.routerID = gip.String()
 	case kubeRouterConfig.RouterID != "":
 		nrc.routerID = kubeRouterConfig.RouterID
+	case annotationOK:
+		nrc.routerID = annotationNodeRouterID
 	default:
 		if nrc.primaryIP.To4() == nil {
 			return nil, errors.New("router-id must be specified when primary node IP is an IPv6 address")
